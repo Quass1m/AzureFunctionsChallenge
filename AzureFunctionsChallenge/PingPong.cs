@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -17,9 +18,6 @@ namespace AzureFunctionsChallenge
         /// <param name="req">Request</param>
         /// <param name="log">Logger</param>
         /// <example>
-        /// Headers:
-        /// Content-Type = application/json
-        /// Body:
         /// {
         ///     "ping": "1b189de1-5c682222-49ab-aa3b-5a8311111"
         /// }
@@ -37,11 +35,21 @@ namespace AzureFunctionsChallenge
             //    .Value;
 
             // Get request data
-            dynamic data = await req.Content.ReadAsAsync<object>();
-            var val = data?.ping;
+            string requestStr = await req.Content.ReadAsStringAsync();
+            RequestData request;
+
+            try
+            {
+                request = JsonConvert.DeserializeObject<RequestData>(requestStr);
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex.ToString());
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            }
 
             // Create reponse
-            var myObj = new { pong = val };
+            var myObj = new { pong = request.Ping };
             var jsonToReturn = JsonConvert.SerializeObject(myObj);
 
             // Return
@@ -49,6 +57,11 @@ namespace AzureFunctionsChallenge
             {
                 Content = new StringContent(jsonToReturn, Encoding.UTF8, "application/json")
             };
+        }
+
+        private class RequestData
+        {
+            public string Ping { get; set; }
         }
     }
 }

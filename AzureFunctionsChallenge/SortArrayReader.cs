@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Linq;
@@ -22,9 +23,6 @@ namespace AzureFunctionsChallenge
         /// <param name="outTable">Storage Table reference</param>
         /// <param name="log">Logger</param>
         /// <example>
-        /// Headers:
-        /// Content-Type = application/json
-        /// Body:
         /// {
         ///     "key": "1b189de1-5c682222-49ab-aa3b-5a8311111"
         /// }
@@ -43,22 +41,37 @@ namespace AzureFunctionsChallenge
         {
             log.Info("C# HTTP trigger SortArrayReader");
 
-            // Get request body
-            dynamic data = await req.Content.ReadAsAsync<object>();
-            string key = data?.key;
+            // Get request data
+            string requestStr = await req.Content.ReadAsStringAsync();
+            RequestData request;
+
+            try
+            {
+                request = JsonConvert.DeserializeObject<RequestData>(requestStr);
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex.ToString());
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            }
 
             // Get values
-            var values = outTable.Where(x => x.PartitionKey == key).Select(x => x.Value).ToList().OrderBy(x => x);
+            var values = outTable.Where(x => x.PartitionKey == request.Key).Select(x => x.Value).ToList().OrderBy(x => x);
 
             // Return
-            log.Info($"Key = \"{key}\"");
-            var myObj = new { key = key, ArrayOfValues = values };
+            log.Info($"Key = \"{request.Key}\"");
+            var myObj = new { key = request.Key, ArrayOfValues = values };
             var jsonToReturn = JsonConvert.SerializeObject(myObj);
 
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(jsonToReturn, Encoding.UTF8, "application/json") 
             };
+        }
+
+        private class RequestData
+        {
+            public string Key { get; set; }
         }
     }
 }

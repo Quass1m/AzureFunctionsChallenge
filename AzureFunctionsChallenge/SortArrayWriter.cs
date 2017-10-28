@@ -4,14 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AzureFunctionsChallenge
 {
@@ -27,9 +25,6 @@ namespace AzureFunctionsChallenge
         /// <param name="outTable">Storage Table reference</param>
         /// <param name="log">Logger</param>
         /// <example>
-        /// Headers:
-        /// Content-Type = application/json
-        /// Body:
         /// {
         ///     "key": "1b189de1-5c682222-49ab-aa3b-5a8311111",
         /// 	"ArrayOfValues": [95,45,34,3,700]
@@ -44,15 +39,13 @@ namespace AzureFunctionsChallenge
         {
             log.Info("C# HTTP trigger SortArrayWriter");
 
-            // Get request body
-            dynamic data = await req.Content.ReadAsAsync<object>();
-            string key = data?.key;
-            List<int> values;
+            // Get request data
+            string requestStr = await req.Content.ReadAsStringAsync();
+            RequestData request;
 
-            // Get values
             try
             {
-                values = ((JArray)data?.ArrayOfValues).Select(x => (int)x).ToList();
+                request = JsonConvert.DeserializeObject<RequestData>(requestStr);
             }
             catch (Exception ex)
             {
@@ -61,16 +54,16 @@ namespace AzureFunctionsChallenge
             }
 
             // Write to table
-            values.ForEach(async value => await outTable.AddAsync(new DataTable()
+            request.ArrayOfValues.ForEach(async value => await outTable.AddAsync(new DataTable()
             {
-                PartitionKey = key,
+                PartitionKey = request.Key,
                 RowKey = Guid.NewGuid().ToString(),
                 Value = value
             }));
-            
+
             // Return
-            log.Info($"Key = \"{key}\", values count = {values.Count}");
-            var myObj = new { key = key, count = values.Count };
+            log.Info($"Key = \"{request.Key}\", values count = {request.ArrayOfValues.Count}");
+            var myObj = new { key = request.Key, count = request.ArrayOfValues.Count };
             var jsonToReturn = JsonConvert.SerializeObject(myObj);
 
             return new HttpResponseMessage(HttpStatusCode.OK)
@@ -79,6 +72,12 @@ namespace AzureFunctionsChallenge
                 Content = new StringContent(jsonToReturn, Encoding.UTF8, "application/json")
 #endif            
             };
+        }
+
+        private class RequestData
+        {
+            public string Key { get; set; }
+            public List<int> ArrayOfValues { get; set; }
         }
     }
 }

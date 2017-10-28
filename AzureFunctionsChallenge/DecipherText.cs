@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -18,9 +19,6 @@ namespace AzureFunctionsChallenge
         /// <param name="req">Request</param>
         /// <param name="log">Logger</param>
         /// <example>
-        /// Headers:
-        /// Content-Type = application/json
-        /// Body:
         /// {
         ///   "key":"2588afea-027f-4093-a0e0-79e25923d614",
         ///   "msg":"3919158618333218751586927582881532861062862782398627102415",
@@ -45,15 +43,22 @@ namespace AzureFunctionsChallenge
             log.Info("C# HTTP trigger DecipherText");
 
             // Get request data
-            dynamic data = await req.Content.ReadAsAsync<object>();
-            string key = data?.key;
-            string msg = data?.msg;
+            string requestStr = await req.Content.ReadAsStringAsync();
+            RequestData request;
+
+            try
+            {
+                request = JsonConvert.DeserializeObject<RequestData>(requestStr);
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex.ToString());
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            }
 
             // Create Cipher
-            Dictionary<string, object> values =
-                JsonConvert.DeserializeObject<Dictionary<string, object>>(data?.cipher.ToString());
             Dictionary<string, string> cipher = new Dictionary<string, string>();
-            foreach (var element in values)
+            foreach (var element in request.Cipher)
             {
                 cipher.Add(element.Value.ToString(), element.Key);
             }
@@ -61,21 +66,28 @@ namespace AzureFunctionsChallenge
             // Decode
             int i = 0;
             StringBuilder sb = new StringBuilder();
-            while (i + 2 <= msg.Length)
+            while (i + 2 <= request.Msg.Length)
             {
-                sb.Append(cipher[msg.Substring(i, 2)]);
+                sb.Append(cipher[request.Msg.Substring(i, 2)]);
                 i += 2;
             }
 
             // Return
-            log.Info($"Key = \"{key}\", Message = \"{sb}\"");
-            var myObj = new { key = key, result = sb.ToString() };
+            log.Info($"Key = \"{request.Key}\", Message = \"{sb}\"");
+            var myObj = new { key = request.Key, result = sb.ToString() };
             var jsonToReturn = JsonConvert.SerializeObject(myObj);
 
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(jsonToReturn, Encoding.UTF8, "application/json")
             };
+        }
+
+        private class RequestData
+        {
+            public string Key { get; set; }
+            public string Msg { get; set; }
+            public Dictionary<string, string> Cipher { get; set; }
         }
     }
 }
