@@ -68,9 +68,7 @@ namespace AzureFunctionsChallenge
 
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
-#if DEBUG
-                Content = new StringContent(jsonToReturn, Encoding.UTF8, "application/json")
-#endif            
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
             };
         }
 
