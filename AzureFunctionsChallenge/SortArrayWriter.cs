@@ -70,10 +70,7 @@ namespace AzureFunctionsChallenge
             var myObj = new { key = request.Key, count = request.ArrayOfValues.Count };
             var jsonToReturn = JsonConvert.SerializeObject(myObj);
 
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json")
-            };
+            return req.CreateResponse(HttpStatusCode.OK, new object());
         }
 
         private class RequestData
