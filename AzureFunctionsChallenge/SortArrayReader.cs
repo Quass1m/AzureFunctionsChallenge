@@ -37,7 +37,7 @@ namespace AzureFunctionsChallenge
         /// </returns>
         /// <see cref="https://functionschallenge.azure.com/functions"/>
         [FunctionName("SortArrayReader")]
-        public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, [Table("SortArray", Connection = "SortArrayConnection")]IQueryable<DataTable> outTable, TraceWriter log)
+        public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, [Table("SortArray", Connection = "AzureWebJobsStorage")]IQueryable<DataTable> outTable, TraceWriter log)
         {
             log.Info("C# HTTP trigger SortArrayReader");
 

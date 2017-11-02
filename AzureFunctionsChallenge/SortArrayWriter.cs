@@ -35,23 +35,27 @@ namespace AzureFunctionsChallenge
         /// </returns>
         /// <see cref="https://functionschallenge.azure.com/functions"/>
         [FunctionName("SortArrayWriter")]
-        public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, [Table("SortArray", Connection = "SortArrayConnection")]IAsyncCollector<DataTable> outTable, TraceWriter log)
+        public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, [Table("SortArray", Connection = "AzureWebJobsStorage")]IAsyncCollector<DataTable> outTable, TraceWriter log)
         {
             log.Info("C# HTTP trigger SortArrayWriter");
 
+            #region Does not require Content-Type: application/json header
             // Get request data
-            string requestStr = await req.Content.ReadAsStringAsync();
-            RequestData request;
+            //string requestStr = await req.Content.ReadAsStringAsync();
+            //RequestData request;
+            //try
+            //{
+            //    request = JsonConvert.DeserializeObject<RequestData>(requestStr);
+            //}
+            //catch (Exception ex)
+            //{
+            //    log.Error(ex.ToString());
+            //    return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            //}
+            #endregion
 
-            try
-            {
-                request = JsonConvert.DeserializeObject<RequestData>(requestStr);
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex.ToString());
-                return new HttpResponseMessage(HttpStatusCode.BadRequest);
-            }
+            dynamic requestData = await req.Content.ReadAsAsync<RequestData>();
+            RequestData request = (RequestData)requestData;
 
             // Write to table
             request.ArrayOfValues.ForEach(async value => await outTable.AddAsync(new DataTable()
